@@ -1,7 +1,7 @@
 # GCOY-SECQUIZ
 
 AI 安全刷题与间隔重复学习助手。内置 18 道覆盖 OWASP LLM Top 10（2025）与 Agent
-特有风险面的题目，配合 SM-2 间隔重复算法安排复习，附 10 张知识卡。零依赖，单文件，Python 3.10+。
+特有风险面的题目，配合 SM-2 间隔重复算法安排复习，附 14 张知识卡（10 OWASP + 4 Agent）。零依赖，单文件，Python 3.10+。
 
 与 [agentscan](https://github.com/TSVMV/agentscan) 的检测面呼应：先在这里把概念刷熟，再到 agentscan 实战。
 
@@ -20,6 +20,9 @@ python3 gcoy_secquiz.py cards
 # 刷题（5 题，含到期复习优先）
 python3 gcoy_secquiz.py quiz --n 5
 
+# 只刷指定分类
+python3 gcoy_secquiz.py quiz --n 5 --cat Defense
+
 # 只复习到期题目
 python3 gcoy_secquiz.py quiz --review
 
@@ -34,10 +37,10 @@ python3 gcoy_secquiz.py export --out report.html
 
 | 命令 | 说明 |
 | --- | --- |
-| `quiz --n 5 [--review]` | 交互答题，到期题优先；`--review` 只刷到期 |
+| `quiz --n 5 [--review] [--cat X]` | 交互答题，到期题优先；`--review` 只刷到期，`--cat` 限定分类 |
 | `add "题干" --opts "A|B|C|D" --ans 2 --cat Defense --diff 1 --why "解析"` | 添加自定义题 |
 | `stats` | 按分类统计题数/答题数/正确率/到期数 |
-| `cards` | 打印 OWASP LLM Top 10 知识卡（风险 + 缓解） |
+| `cards` | 打印知识卡（OWASP LLM Top10 + Agent） |
 | `export --out report.html` | 单文件 HTML 战报，含知识卡 + 全题库 + 答题历史 |
 | `selftest` | 自检 |
 
