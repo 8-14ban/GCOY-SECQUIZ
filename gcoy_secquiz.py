@@ -86,6 +86,10 @@ CARDS = [
     {"code": "LLM08", "name": "Excessive Agency", "risk": "被授予过高自主执行权。", "mit": "人在回路、高危确认、可撤销权限。"},
     {"code": "LLM09", "name": "Overreliance", "risk": "盲目信任模型决策。", "mit": "批判性复核、不确定性提示、人工把关。"},
     {"code": "LLM10", "name": "Model Theft", "risk": "通过查询反推权重/数据。", "mit": "访问控制、速率限制、输出水印。"},
+    {"code": "AG01", "name": "Tool Description Poisoning", "risk": "MCP/工具描述被植入恶意指令，劫持 Agent 调用。", "mit": "校验工具描述、签名、限制工具权限。"},
+    {"code": "AG02", "name": "Memory Poisoning", "risk": "长期记忆被写入持久后门指令。", "mit": "记忆来源审计、可重置、关键决策不依赖历史记忆。"},
+    {"code": "AG03", "name": "SSRF via Agent Tools", "risk": "Agent 网络工具被诱导访问内网/云元数据。", "mit": "出站白名单、禁内网与云元数据段。"},
+    {"code": "AG04", "name": "Excessive Tool Agency", "risk": "工具可执行高危操作（删库/外发）且无确认。", "mit": "命令白名单、沙箱、高危人在回路。"},
 ]
 
 STYLE = (
@@ -151,16 +155,17 @@ def grade(qid, correct, prog):
     return s
 
 
-def pick_quiz(bank, prog, n, review_only):
+def pick_quiz(bank, prog, n, review_only, cat=None):
     today = date.today().isoformat()
-    due_ids = {q["id"] for q in bank if prog.get(q["id"], {}).get("due", "0000") <= today}
-    due = [q for q in bank if q["id"] in due_ids]
+    src = [q for q in bank if (not cat or q["cat"] == cat)]
+    due_ids = {q["id"] for q in src if prog.get(q["id"], {}).get("due", "0000") <= today}
+    due = [q for q in src if q["id"] in due_ids]
     if review_only:
         pool = due
     else:
-        pool = due + [q for q in bank if q["id"] not in due_ids]
+        pool = due + [q for q in src if q["id"] not in due_ids]
     if not pool:
-        pool = list(bank)
+        pool = list(src) or list(bank)
     random.shuffle(pool)
     return pool[:n]
 
@@ -187,7 +192,7 @@ def cmd_quiz(args):
     prog = load_prog(h)
     if not bank:
         sys.exit("题库为空")
-    picks = pick_quiz(bank, prog, args.n, args.review)
+    picks = pick_quiz(bank, prog, args.n, args.review, getattr(args, "cat", None))
     if not picks:
         print("暂无到期题目，去掉 --review 随机刷题")
         return
@@ -261,7 +266,7 @@ def cmd_export(args):
     parts = [
         "<!doctype html><meta charset='utf-8'><title>GCOY-SECQUIZ</title>",
         f"<style>{STYLE}</style><h1>GCOY-SECQUIZ 学习战报</h1>",
-        "<h2>OWASP LLM Top 10 知识卡</h2>",
+        "<h2>知识卡（OWASP LLM Top10 + Agent）</h2>",
     ]
     for c in CARDS:
         parts.append(
@@ -323,10 +328,11 @@ def main(argv=None):
     s = sub.add_parser("quiz", help="答题刷题")
     s.add_argument("--n", type=int, default=5)
     s.add_argument("--review", action="store_true", help="只刷到期复习题")
+    s.add_argument("--cat", default=None, help="只刷指定分类")
     s.set_defaults(fn=cmd_quiz)
     s = sub.add_parser("stats", help="掌握度统计")
     s.set_defaults(fn=cmd_stats)
-    s = sub.add_parser("cards", help="打印 OWASP LLM 知识卡")
+    s = sub.add_parser("cards", help="打印知识卡（OWASP LLM Top10 + Agent）")
     s.set_defaults(fn=cmd_cards)
     s = sub.add_parser("export", help="导出 HTML 战报")
     s.add_argument("--out", default="secquiz-report.html")
